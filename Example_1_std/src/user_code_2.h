@@ -8,8 +8,8 @@ CoroTask codeWithCoro() {
     // Выполняем в текущем потоке задачу
     currentThreadTask();
     
-    // Перейти в writerQueue
-    co_await writerQueue;
+    // Перейти в writerQueue, co_await/co_yield в данной реализации совпадают
+    co_await getWriterQueue();
     
     // Выполняем что-то в потоке записи
     writerThreadTask1();
@@ -18,7 +18,7 @@ CoroTask codeWithCoro() {
     if (needNetwork()) {
         
         // Перейти в networkQueue
-        co_yield networkQueue;
+        co_await getNetworkQueue();
         
         // Выполняем что-то в сетевом потоке
         auto networkSuccess = networkThreadTask();
@@ -27,7 +27,7 @@ CoroTask codeWithCoro() {
         if (networkSuccess) {
             
             // Перейти в UIQueue
-            co_yield UIQueue;
+            co_await getUIQueue();
             
             // Выполняем что-то в главном потоке
             uiThreadTask();
@@ -35,12 +35,12 @@ CoroTask codeWithCoro() {
     }
     
     // Перейти в writerQueue
-    co_yield writerQueue;
+    co_await getWriterQueue();
     
     // Выполняем что-то в потоке запись
     writerThreadTask2();
     
-    ShutdownAll();
+    shutdownAllThreads();
 }
 
 #endif

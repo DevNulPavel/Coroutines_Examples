@@ -5,61 +5,67 @@
 #include <iostream>
 #include <sstream>
 #include "work_queue.h"
+#include "functions.h"
 
 class WorkQueue;    // forward declaration
 class PromiseType;  // forward declaration
 
+// Определяем обработчики работы с корутинами
 struct CoroTask {
     using promise_type = PromiseType;
 };
 
-#ifndef CORO_OPTIMIZED
-    struct schedule_for_execution {
-        WorkQueue& wq;
-        
-        constexpr bool await_ready() const noexcept { return false; }
-        void await_suspend(std::experimental::coroutine_handle<> this_coro) const {
-            wq.PushTask(this_coro);
-        }
-        constexpr void await_resume() const noexcept {}
-    };
-#else
-    struct schedule_for_execution {
-        const bool do_resume;
-        WorkQueue& wq;
-        
-        constexpr bool await_ready() const noexcept { return do_resume; }
-        void await_suspend(std::experimental::coroutine_handle<> this_coro) const {
-            wq.PushTask(this_coro);
-        }
-        constexpr void await_resume() const noexcept {}
-    };
-#endif
+struct AwaitObject {
+    // Данные, с которыми мы работаем
+    const bool doResume = false; // Нужно ли нам засыпать? Может быть мы уже в правильной очереди
+    WorkQueue& wq; // Очередь, в которую мы планируем перейти
+    
+    explicit AwaitObject(bool doResumeParam, WorkQueue& wqParam);
+    
+    // Вызывается перед засыпанием корутины, чтобы определить - нужно ли нам вообще засыпать, или уже все готово
+    bool await_ready() const noexcept; // constexpr
+    
+    // Вызывается после засыпания корутины
+    void await_suspend(const std::experimental::coroutine_handle<>& thisCoro) const;
+    
+    // Вызывается при просыпании корутины в новом потоке
+    void await_resume() const noexcept; // constexpr
+};
 
 class PromiseType {
 public:
-    void return_void() const {         Log(__func__);                                             }
-    auto initial_suspend() const {     Log(__func__); return std::experimental::suspend_never{};  }
-    auto final_suspend() const {       Log(__func__); return std::experimental::suspend_never{};  }
-    void unhandled_exception() const { Log(__func__); std::terminate();                           }
-    auto get_return_object() const {   Log(__func__); return CoroTask{};                         }
-    schedule_for_execution yield_value(WorkQueue& wq);
+    // Данный метод вызывается при выходе из корутины
+    void return_void() const;
     
-    schedule_for_execution await_transform(WorkQueue& wq);
+    // С помощью данного метода происходит определение, нужно ли нам засыпать в входе в корутину
+    std::experimental::suspend_never initial_suspend() const;
+    
+    // С помощью данного метода мы определяем, нужно ли усыплять корутину при выходе из корутины
+    std::experimental::suspend_never final_suspend() const;
+    
+    void unhandled_exception() const;
+    
+    // Данный метод вызывается при входе в метод, в котором есть корутина,
+    // с помощью данного метода фактически создается объект корутины
+    CoroTask get_return_object() const;
+    
+    // Вызывается при вызове co_yield
+    AwaitObject yield_value(WorkQueue& wq);
+    
+    // Вызывается при вызове co_await
+    AwaitObject await_transform(WorkQueue& wq);
     
 private:
     void Log(const char* msg) const {
         #ifdef DEBUG_PRINT
             std::ostringstream oss; // std::osyncstream is not implemented yet :(
-            oss << this << " PromiseType:  " << msg << '\n';
+            oss << "Thread: " << threadId << " -> " << this << " PromiseType: " << msg << '\n';
             std::clog << oss.str();
         #endif
         (void)msg;
     }
     
-    #ifdef CORO_OPTIMIZED
-        WorkQueue* current_queue_ = nullptr;
-    #endif
+    WorkQueue* current_queue_ = nullptr;
 };
 
 #endif

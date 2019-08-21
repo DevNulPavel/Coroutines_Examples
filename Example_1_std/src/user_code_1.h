@@ -8,47 +8,47 @@ void codeWithCallbacks() {
     currentThreadTask();
     
     // Закидываем задачу в очередь потока записи
-    writerQueue.PushTask([=]() {
+    getWriterQueue().PushTask([=]() {
         // Выполняем запись
         writerThreadTask1();
         
         // Если нужна работа с сетью - закидываем задачу...
         if (needNetwork()) {
             // ... в очередь работы с сетью
-            networkQueue.PushTask([=](){
+            getNetworkQueue().PushTask([=](){
                 // Выполняем работу с сетью
                 auto v = networkThreadTask();
                 // Если работа произошла успешно...
                 if (v) {
                     // ...закидываем задачу в очередь работы с UI
-                    UIQueue.PushTask([=](){
+                    getUIQueue().PushTask([=](){
                         // Выполняем что-то в UI потоке
                         uiThreadTask();
                         
                         // Коллбек завершения
                         const auto finallyInWriterThread = [=]() {
                             writerThreadTask2();
-                            ShutdownAll();
+                            shutdownAllThreads();
                         };
                         
                         // Закидываем задачу после обновления в очередь записи запись
-                        writerQueue.PushTask(finallyInWriterThread);
+                        getWriterQueue().PushTask(finallyInWriterThread);
                     });
                 } else {
                     // Коллбек завершения
                     const auto finallyInWriterThread = [=]() {
                         writerThreadTask2();
-                        ShutdownAll();
+                        shutdownAllThreads();
                     };
                     // Закидываем в поток записи
-                    writerQueue.PushTask(finallyInWriterThread);
+                    getWriterQueue().PushTask(finallyInWriterThread);
                 }
             });
         } else {
             // Коллбек завершения
             const auto finallyInWriterThread = [=]() {
                 writerThreadTask2();
-                ShutdownAll();
+                shutdownAllThreads();
             };
             finallyInWriterThread();
         }

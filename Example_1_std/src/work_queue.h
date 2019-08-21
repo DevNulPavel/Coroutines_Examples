@@ -9,24 +9,24 @@ class WorkQueue {
 public:
     using TaskType = std::function<void()>;
     
-    void PushTask(TaskType task);
     void Run();
     void Shutdown();
+    void PushTask(const TaskType& task);
     
 private:
     std::mutex _tasks_mutex;
     std::condition_variable _tasks_cond;
     std::deque<TaskType> _tasks;
     std::atomic<bool> _stop = false;
-    
+
+private:
     TaskType PopTask();
 };
 
-extern WorkQueue writerQueue;
-extern WorkQueue networkQueue;
-extern WorkQueue UIQueue;
-
-void ShutdownAll();
+WorkQueue& getWriterQueue();
+WorkQueue& getNetworkQueue();
+WorkQueue& getUIQueue();
+void shutdownAllThreads();
 
 #endif
 

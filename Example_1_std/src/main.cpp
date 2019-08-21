@@ -14,15 +14,15 @@ void test(Func func) {
         threadId = "MAIN";
         std::thread wr([](){
             threadId = "WRITER";
-            writerQueue.Run();
+            getWriterQueue().Run();
         });
         std::thread net([](){
             threadId = "NETWORK";
-            networkQueue.Run();
+            getNetworkQueue().Run();
         });
         std::thread ui([](){
             threadId = "UI";
-            UIQueue.Run();
+            getUIQueue().Run();
         });
         
         print("START");

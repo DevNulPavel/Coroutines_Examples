@@ -28,7 +28,7 @@ endif(CLANG_FOUND)
 #add_definitions(-std=c++2a -fcoroutines-ts)
 
 # Флаги (-std=c++2a -fcoroutines-ts)
-set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall -Wextra -std=c++2a -fcoroutines-ts")
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -g -O0 -Wall -Wextra -std=c++2a -fcoroutines-ts")
 
 # Список исходников
 set (HEADERS 
@@ -39,6 +39,7 @@ set (HEADERS
 		"src/user_code_1.h"
 		"src/user_code_2.h")
 set (SOURCES
+		"src/functions.cpp"
 		"src/coro_task.cpp"
 		"src/work_queue.cpp"
 		"src/main.cpp")
