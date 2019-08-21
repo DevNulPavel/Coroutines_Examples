@@ -1,5 +1,6 @@
 #include "config.h"
 #include "work_queue.h"
+#include "functions.h"
 
 static WorkQueue writerQueue;
 static WorkQueue networkQueue;
@@ -15,7 +16,9 @@ void WorkQueue::Run() {
         if (!t){
             return;
         }
+        print("Queue task begin");
         t();
+        print("Queue task end");
     }
 }
 

@@ -1,5 +1,7 @@
-#include "config.h"
 #include "coro_task.h"
+#include <thread>
+#include <future>
+#include "config.h"
 #include "work_queue.h"
 
 
@@ -21,11 +23,33 @@ void AwaitObject::await_suspend(const std::experimental::coroutine_handle<>& thi
     // у корутины есть operator(), поэтому вполне подходит в качестве задачи
     wq.PushTask(thisCoro);
     
+    /*std::thread testThread([](std::experimental::coroutine_handle<> coro){
+        threadId = "TEST";
+        print("Test thread enter");
+        std::this_thread::sleep_for(std::chrono::milliseconds(250));
+        coro(); // Продолжаем корутину до очередного yield/await
+        print("Test thread exit");
+    }, thisCoro);
+    testThread.detach();*/
+    
+    // Неправильный вариант, так как мы дожидаемся возвращаемого значения в result
+    /*auto result = std::async(std::launch::async, [](std::function<void()> function){
+        threadId = "TEST";
+        print("Async enter");
+        std::this_thread::sleep_for(std::chrono::milliseconds(250));
+        function(); // Продолжаем корутину до очередного yield/await
+        print("Async exit");
+    }, thisCoro);*/
+    
     // Так можно восстановить работу корутины
     //auto coroCopy = thisCoro;
-    //coroCopy.operator()();
-    // или
-    //coroCopy.resume();
+    //coroCopy(); // coroCopy.resume();
+    
+    // Чтобы просто восстановить работу корутины до очередного await/yield - нужно использовать корутину как функцию
+    /*std::function<void()> function = thisCoro;
+    print("Async enter");
+    function();
+    print("Async exit");*/
 }
 
 // Вызывается при просыпании корутины в новом потоке
