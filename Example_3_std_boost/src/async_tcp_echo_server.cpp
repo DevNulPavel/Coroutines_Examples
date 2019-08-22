@@ -243,7 +243,11 @@ auto async_accept(Acceptor &acceptor) {
         }
     };
     // acceptor.get_executor().context()
-    return Awaiter{acceptor, tcp::socket(acceptor.get_executor()), std::error_code()};
+    return Awaiter{
+        acceptor,
+        tcp::socket(acceptor.get_executor()),
+        std::error_code()
+    };
 }
 
 ////////////////////////////////////////////////////////////////////////////////////
@@ -263,7 +267,7 @@ void Server::do_accept() {
         // Если нет никакой ошибки - создаем новую сессию
         if (!ec) {
             std::shared_ptr<Session> newSession = std::make_shared<Session>(std::move(socket));
-            // Запускаем обработку данных в сессии
+            // Запускаем обработку данных в сессии и выходим
             newSession->start();
         } else {
             std::cout << "Error accepting connection: " << ec << std::endl;
