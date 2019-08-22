@@ -1,0 +1,1 @@
+Описание работы: https://habr.com/ru/company/yandex/blog/420861/
