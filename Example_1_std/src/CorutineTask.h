@@ -57,10 +57,10 @@ public:
     // с помощью данного метода фактически создается объект корутины
     CoroTask get_return_object() const;
     
-    // Вызывается при вызове co_yield
+    // Вызывается при вызове co_yield, метод нужен для создания Awaiter объекта для конкретного параметра
     AwaitObject yield_value(WorkQueue& wq);
     
-    // Вызывается при вызове co_await
+    // Вызывается при вызове co_await, метод нужен для создания Awaiter объекта для конкретного параметра
     AwaitObject await_transform(WorkQueue& wq);
     
 private:

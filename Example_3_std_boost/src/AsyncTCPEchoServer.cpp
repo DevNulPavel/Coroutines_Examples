@@ -1,14 +1,53 @@
 #include "AsyncTCPEchoServer.h"
 
+
+/*template <typename... Args>
+struct std::experimental::coroutine_traits<void, Args...> {
+    using promise_type = PromiseType;
+};*/
+
+struct PromiseType {
+public:
+    // Данный метод вызывается при выходе из корутины c помощью co_return
+    void return_void() const{
+    }
+    // Данный метод вызывается при выходе из корутины c помощью co_return
+    void return_void() {
+    }
+    // Данный метод вызывается при выходе из корутины
+    // с помощью данного метода фактически создается объект корутины
+    CoroTask get_return_object() const {
+        return CoroTask();
+    }
+    // Не засыпаем при входе в корутину
+    std::experimental::suspend_never initial_suspend() {
+        return std::experimental::suspend_never();
+    }
+    // Не засыпаем во время выхода корутины
+    std::experimental::suspend_never final_suspend() {
+        return std::experimental::suspend_never();
+    }
+    // При исключении будем вырубать приложение
+    void unhandled_exception() {
+        std::terminate();
+    }
+    // Вызывается при вызове co_yield, метод нужен для создания Awaiter объекта для конкретного параметра
+    //auto yield_value(){
+    //}
+    
+    // Вызывается при вызове co_await, метод нужен для создания Awaiter объекта для конкретного параметра
+    //auto await_transform(){
+    //}
+};
+
 ////////////////////////////////////////////////////////////////////////////////////
 
-template <typename SyncReadStream, typename DynamicBuffer>
-auto asyncReadSome(SyncReadStream& s, DynamicBuffer&& buffers) {
-    struct Awaiter {
+auto asyncReadSome(tcp::socket&s, boost::asio::mutable_buffer&& buffers) {
+    struct ReadAwaiter {
         // Поток данных
-        SyncReadStream &s;
+        tcp::socket &s;
         // Буффер с данными
-        DynamicBuffer buffers;
+        boost::asio::mutable_buffer buffers;
         // Код ошибки
         std::error_code ec;
         // Размер данных
@@ -35,9 +74,9 @@ auto asyncReadSome(SyncReadStream& s, DynamicBuffer&& buffers) {
             return std::make_pair(ec, sz);
         }
     };
-    auto awaiter = Awaiter{
+    auto awaiter = ReadAwaiter{
         s,
-        std::forward<DynamicBuffer>(buffers),
+        std::forward<boost::asio::mutable_buffer>(buffers), // Перемещаем buffers в Awaiter
         std::error_code(),
         0
     };
@@ -46,13 +85,12 @@ auto asyncReadSome(SyncReadStream& s, DynamicBuffer&& buffers) {
 
 ////////////////////////////////////////////////////////////////////////////////////
 
-template <typename SyncReadStream, typename DynamicBuffer>
-auto asyncWriteSome(SyncReadStream &s, DynamicBuffer &&buffers) {
+auto asyncWriteSome(tcp::socket& s, boost::asio::mutable_buffer&& buffers) {
     struct WriteAwaiter {
         // Поток данных
-        SyncReadStream &s;
+        tcp::socket &s;
         // Буффер с данными
-        DynamicBuffer buffers;
+        boost::asio::mutable_buffer buffers;
         // Код ошибки
         std::error_code ec;
         // Размер данных
@@ -88,7 +126,7 @@ auto asyncWriteSome(SyncReadStream &s, DynamicBuffer &&buffers) {
     };
     WriteAwaiter obj = WriteAwaiter{
         s,
-        std::forward<DynamicBuffer>(buffers),
+        std::forward<boost::asio::mutable_buffer>(buffers), // Перемещаем buffers в Awaiter
         std::error_code(),
         0
     };
@@ -103,75 +141,33 @@ Session::Session(tcp::socket socket):
 
 // Запускаем у сессии ожидание чтения данных
 void Session::start() {
-    doRead();
+    doRunLoop();
 }
 
-auto Session::doWrite(std::size_t length) {
-    struct WriteAwaiter {
-        std::shared_ptr<Session> currentSession;
-        std::size_t length;
-        std::error_code ec;
-
-        // Может быть не нужно засыплять корутину, так как результат уже готов - нам нужно всегда усыплять
-        bool await_ready() {
-            return false;
-        }
-        
-        // Вызывается после усыпления сессии
-        void await_suspend(std::experimental::coroutine_handle<> coro) {
-            
-            // После усыпления запускаем процесс записи в сокет данных
-            const std::pair<std::error_code, std::size_t> res = co_await asyncWriteSome(currentSession->_socket, boost::asio::buffer(currentSession->_data, length));
-            
-            // Сохраняем код ошибки
-            this->ec = res.first;
-            std::cout << "do_write completed" << std::endl;
-            
-            // Восстанавливаем работу нашей сессии
-            coro.resume();
-        }
-        
-        // Возвращаемое значение корутины, когда мы восстанавливаем ее состояние?
-        std::error_code await_resume() {
-            return ec;
-        }
-    };
-    
-    std::shared_ptr<Session> self(shared_from_this());
-    WriteAwaiter awaiter = WriteAwaiter{
-        self,
-        length,
-        std::error_code()
-    };
-    return awaiter;
-}
-
-void Session::doRead() {
-    // Создаем временную ссылку на текущий объект
+CoroTask Session::doRunLoop() {
+    // Создаем временную ссылку на текущий объект, чтобы не уничтожился текущий объект, пока мы ждем в корутине
     std::shared_ptr<Session> self(shared_from_this());
     // Читать будем в цикле
     while (true) {
-        std::cout << "Before read" << std::endl;
-        
         // Запускаем асинхронное чтение в локальный буффер данных
+        std::cout << "Before read" << std::endl;
         const std::pair<std::error_code, size_t> readResult = co_await asyncReadSome(_socket, boost::asio::buffer(_data, BUFFER_SIZE));
-        
         std::cout << "after read" << std::endl;
         
-        // Если не возникло никакой ошибки, то
-        if (!readResult.first) {
-            // Инициируем процедуру асинхронной записи из локального буффера сессии
-            std::cout << "before write" << std::endl;
-            auto ec = co_await doWrite(readResult.second);
-            std::cout << "after write" << std::endl;
-            
-            // Если возникла ошибка - прерываем работу
-            if (ec) {
-                std::cout << "Error writing to socket: " << ec << std::endl;
-                break;
-            }
-        } else {
+        // Если возникла ошибка - прерываем работу сессии
+        if (readResult.first) {
             std::cout << "Error reading from socket: " << readResult.first << std::endl;
+            break;
+        }
+
+        // Инициируем процедуру асинхронной записи из локального буффера сессии
+        std::cout << "before write" << std::endl;
+        const std::pair<std::error_code, std::size_t> res = co_await asyncWriteSome(_socket, boost::asio::buffer(_data, readResult.second));
+        std::cout << "after write" << std::endl;
+        
+        // Если возникла ошибка - прерываем работу сессии
+        if (res.first) {
+            std::cout << "Error writing to socket: " << res.first << std::endl;
             break;
         }
     }
@@ -226,7 +222,7 @@ Server::Server(boost::asio::io_context &io_context, short port):
     doAccept();
 }
 
-void Server::doAccept() {
+CoroTask Server::doAccept() {
     // В цикле ожидаем поступления новых соединений
     while (true) {
         // Получаем ошибку и новый сокет в асинронном режиме с сохранением корутины

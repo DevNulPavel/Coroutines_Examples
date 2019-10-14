@@ -20,34 +20,10 @@ auto async_accept(Acceptor &acceptor);
 
 ////////////////////////////////////////////////////////////////////////////////////
 
-struct CoroutineConfig {
-public:
-    // Данный метод вызывается при выходе из корутины
-    void return_void() const{
-    }
-    // Данный метод вызывается при выходе из корутины
-    void return_void() {
-    }
-    // Данный метод вызывается при выходе из корутины
-    void get_return_object() const {
-    }
-    // Не засыпаем при входе в корутину
-    std::experimental::suspend_never initial_suspend() {
-        return std::experimental::suspend_never();
-    }
-    // Не засыпаем во время выхода корутины
-    std::experimental::suspend_never final_suspend() {
-        return std::experimental::suspend_never();
-    }
-    // При исключении будем вырубать приложение
-    void unhandled_exception() {
-        std::terminate();
-    }
-};
+struct PromiseType;
 
-template <typename... Args>
-struct std::experimental::coroutine_traits<void, Args...> {
-    using promise_type = CoroutineConfig;
+struct CoroTask {
+    using promise_type = PromiseType;
 };
 
 ////////////////////////////////////////////////////////////////////////////////////
@@ -59,8 +35,7 @@ public:
     void start();
     
 private:
-    auto doWrite(std::size_t length);
-    void doRead();
+    CoroTask doRunLoop();
     
 private:
     enum {
@@ -77,7 +52,7 @@ public:
     Server(boost::asio::io_context &io_context, short port);
     
 private:
-    void doAccept();
+    CoroTask doAccept();
     
 private:
     tcp::acceptor _acceptor;

@@ -89,7 +89,7 @@ CoroTask PromiseType::get_return_object() const {
     return CoroTask();
 }
 
-// Вызывается при вызове co_yield
+// Вызывается при вызове co_yield, метод нужен для создания Awaiter объекта для конкретного параметра
 AwaitObject PromiseType::yield_value(WorkQueue& wq) {
     Log(__func__);
     
@@ -103,7 +103,7 @@ AwaitObject PromiseType::yield_value(WorkQueue& wq) {
     return AwaitObject(needResume, wq);
 }
 
-// Вызывается при вызове co_await
+// Вызывается при вызове co_await, метод нужен для создания Awaiter объекта для конкретного параметра
 AwaitObject PromiseType::await_transform(WorkQueue& wq) {
     return yield_value(wq);
 }
