@@ -32,16 +32,16 @@ set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -g -O0 -Wall -Wextra -std=c++2a -fcorout
 
 # Список исходников
 set (HEADERS 
-		"src/config.h"
-		"src/coro_task.h"
-		"src/functions.h"
-		"src/work_queue.h"
-		"src/user_code_1.h"
-		"src/user_code_2.h")
+		"src/Config.h"
+		"src/CorutineTask.h"
+		"src/TestFunctions.h"
+		"src/WorkQueue.h"
+		"src/TestCodeCallbacks.h"
+		"src/TestCodeCoroutines.h")
 set (SOURCES
-		"src/functions.cpp"
-		"src/coro_task.cpp"
-		"src/work_queue.cpp"
+		"src/TestFunctions.cpp"
+		"src/CorutineTask.cpp"
+		"src/WorkQueue.cpp"
 		"src/main.cpp")
 
 # создаем группу, чтобы заголовочники и исходники были в одной папке

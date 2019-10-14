@@ -1,12 +1,12 @@
 //////////////////////// main.cpp
 
 #include <thread>
-#include "config.h"
-#include "work_queue.h"
-#include "coro_task.h"
-#include "functions.h"
-#include "user_code_1.h"
-#include "user_code_2.h"
+#include "Config.h"
+#include "WorkQueue.h"
+#include "CorutineTask.h"
+#include "TestFunctions.h"
+#include "TestCodeCallbacks.h"
+#include "TestCodeCoroutines.h"
 
 template <class Func>
 void test(Func func) {
