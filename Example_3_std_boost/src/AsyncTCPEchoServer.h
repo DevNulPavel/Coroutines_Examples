@@ -9,21 +9,50 @@ using boost::asio::ip::tcp;
 
 ////////////////////////////////////////////////////////////////////////////////////
 
-template <typename SyncReadStream, typename DynamicBuffer>
-auto async_read_some(SyncReadStream &s, DynamicBuffer &&buffers);
-
-template <typename SyncReadStream, typename DynamicBuffer>
-auto async_write(SyncReadStream &s, DynamicBuffer &&buffers);
-
-template <typename Acceptor>
-auto async_accept(Acceptor &acceptor);
-
-////////////////////////////////////////////////////////////////////////////////////
-
 struct PromiseType;
 
 struct CoroTask {
     using promise_type = PromiseType;
+};
+
+// Универсальный тип вместо CoroTask
+template <typename... Args>
+struct std::experimental::coroutine_traits<void, Args...> {
+    using promise_type = PromiseType;
+};
+
+struct PromiseType {
+public:
+    // Данный метод вызывается при выходе из корутины c помощью co_return
+    void return_void() const{
+    }
+    // Данный метод вызывается при выходе из корутины c помощью co_return
+    void return_void() {
+    }
+    // Данный метод вызывается при выходе из корутины
+    // с помощью данного метода фактически создается объект корутины
+    void get_return_object() const {
+        //return CoroTask(); // Может возвращать CoroTask
+    }
+    // Не засыпаем при входе в корутину
+    std::experimental::suspend_never initial_suspend() {
+        return std::experimental::suspend_never();
+    }
+    // Не засыпаем во время выхода корутины
+    std::experimental::suspend_never final_suspend() {
+        return std::experimental::suspend_never();
+    }
+    // При исключении будем вырубать приложение
+    void unhandled_exception() {
+        std::terminate();
+    }
+    // Вызывается при вызове co_yield, метод нужен для создания Awaiter объекта для конкретного типа параметра
+    //auto yield_value(){
+    //}
+    
+    // Вызывается при вызове co_await, метод нужен для создания Awaiter объекта для конкретного типа параметра
+    //auto await_transform(){
+    //}
 };
 
 ////////////////////////////////////////////////////////////////////////////////////
@@ -35,7 +64,7 @@ public:
     void start();
     
 private:
-    CoroTask doRunLoop();
+    void doRunLoop();
     
 private:
     enum {
@@ -52,7 +81,7 @@ public:
     Server(boost::asio::io_context &io_context, short port);
     
 private:
-    CoroTask doAccept();
+    void doAccept();
     
 private:
     tcp::acceptor _acceptor;

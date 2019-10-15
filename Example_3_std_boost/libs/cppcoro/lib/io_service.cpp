@@ -711,12 +711,12 @@ cppcoro::io_service::ensure_timer_thread_started()
 	return timerState;
 }
 
-cppcoro::io_service::timer_thread_state::timer_thread_state()
+cppcoro::io_service::timer_thread_state::timer_thread_state():
 #if CPPCORO_OS_WINNT
-	: m_wakeUpEvent(create_auto_reset_event())
-	, m_waitableTimerEvent(create_waitable_timer_event())
+	  m_wakeUpEvent(create_auto_reset_event())
+	, m_waitableTimerEvent(create_waitable_timer_event()),
 #endif
-	, m_newlyQueuedTimers(nullptr)
+	  m_newlyQueuedTimers(nullptr)
 	, m_timerCancellationRequested(false)
 	, m_shutDownRequested(false)
 	, m_thread([this] { this->run(); })
