@@ -44,6 +44,9 @@ public:
     // Данный метод вызывается при выходе из корутины c помощью co_return
     void return_void() const;
     
+    // Данный метод вызывается при выходе из корутины c помощью co_return <int>
+    //void return_value(int) {}
+    
     // С помощью данного метода происходит определение, нужно ли нам засыпать в входе в корутину
     std::experimental::suspend_never initial_suspend() const;
     
